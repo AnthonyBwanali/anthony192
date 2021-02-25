@@ -1,0 +1,150 @@
+library(GPFDA)
+library(MASS)
+rm(list=ls())
+
+data<-read.csv(file.choose(),header = TRUE)
+str(data)                 
+head(data)
+
+y= data.matrix(data$Lifetouch.Heart.Rate)
+x=1:167
+x
+x=y[1:147]
+y=y[10:156]
+mat=cbind(y,x)
+mat
+x
+y
+
+X=as.matrix(mat[,2])
+Y=as.matrix(mat[,1])
+X
+Y
+# 
+#x=seq(1,167,len=1000)/60
+str(x)
+system.time(a1 <- gpr(as.matrix(X),as.matrix(Y),c("pow.ex"),mean="t"))
+
+y=(data$Lifetouch.Heart.Rate)
+y=data.matrix(data$Lifetouch.Heart.Rate)
+
+x=y[1:285]
+y=y[10:294]
+mat=cbind(y,x)
+X=as.matrix(mat[,2])
+Y=as.matrix(mat[,1])
+system.time(b1 <- gppredict(a1,Data.new=as.matrix(x)))
+plot(b1)
+b1
+
+Z=b1$pred.mean
+
+Z
+plot(Z)
+
+plot(y)
+
+
+#Calculate r^2
+calc_r2 = function( ActualY, EstimatedY ){
+  return( 1 - sum( (ActualY-EstimatedY )^2 ) / sum((ActualY-mean(ActualY))^2) )
+}
+
+#Calculate RMSE
+calc_RMSE = function( ActualY, EstimatedY ){
+  return( sqrt( sum( (ActualY-EstimatedY )^2 ) / nrow(ActualY)) )
+}
+
+r2pred = calc_r2( b1$newdata, b1$pred.mean)
+RMSEpred = calc_RMSE(b1$newdata, b1$pred.mean)
+
+# Show result
+sprintf("r2pred:%g, RMSEpred:%g", r2pred, RMSEpred)
+
+
+hp2 <- list("rat.qu.a"=2,"rat.qu.s"=0.1,"rat.qu.w"=-1,"vv"=1.5)
+a2 <- gpr(as.matrix(X),as.matrix(Y),c("rat.qu"),mean="t",trace=2,hyper = hp2)
+
+a2 <- gpr(as.matrix(X),as.matrix(Y),c("rat.qu"),mean="t")
+b2 <- gppredict(a2,Data.new=as.matrix(x))
+
+plot(b2)
+
+a3 <- gpr(as.matrix(X),as.matrix(Y),c("linear"),mean="t")
+b3 <- gppredict(a3,Data.new=as.matrix(x))
+
+plot(b3)
+
+
+#Calculate r^2
+calc_r2 = function( ActualY, EstimatedY ){
+  return( 1 - sum( (ActualY-EstimatedY )^2 ) / sum((ActualY-mean(ActualY))^2) )
+}
+
+#Calculate RMSE
+calc_RMSE = function( ActualY, EstimatedY ){
+  return( sqrt( sum( (ActualY-EstimatedY )^2 ) / nrow(ActualY)) )
+}
+
+r2pred = calc_r2( b2$newdata, b2$pred.mean)
+RMSEpred = calc_RMSE(b2$newdata, b2$pred.mean)
+
+r2pred = calc_r2( b3$newdata, b3$pred.mean)
+RMSEpred = calc_RMSE(b3$newdata, b3$pred.mean)
+
+
+
+# Show result
+sprintf("r2pred:%g, RMSEpred:%g", r2pred, RMSEpred)
+
+
+
+W=b2$pred.mean
+
+plot(W)
+
+W=b2$pred.mean
+
+plot(W)
+plot(1:285,Z,type="l",col="red")
+lines(1:285,y,col="green")
+Z2<-b1$pred.sd
+#actual prediction+90% confident interval
+lines(1:285,Z+Z2,type='p',col='blue')
+lines(1:285,Z-Z2,type='p',col='blue')
+Z2
+plot(y)
+
+W=b2$pred.mean
+
+B=b1$pred.mean
+C=b3$pred.mean
+
+
+plot(W)
+
+plot(1:158,Z,type="l",col="red")
+lines(1:158,y,col="green")
+Z2<-b1$pred.sd
+#actual prediction+90% confident interval
+lines(1:158,Z+Z2,type='p',col='blue')
+lines(1:158,Z-Z2,type='p',col='blue')
+Z2
+plot(y)
+
+plot(B)
+plot(1:158,W,type="l",col="red")
+lines(1:158,y,col="green")
+Z3<-b2$pred.sd
+#actual prediction+90% confident interval
+lines(1:158,W+Z3,type='l',col='blue')
+lines(1:158,W-Z3,type='l',col='blue')
+
+
+plot(C)
+plot(1:158,C,type="l",col="red")
+lines(1:158,y,col="green")
+Z4<-b3$pred.sd
+#actual prediction+90% confident interval
+lines(1:158,C+Z4,type='l',col='blue')
+lines(1:158,C-Z4,type='l',col='blue')

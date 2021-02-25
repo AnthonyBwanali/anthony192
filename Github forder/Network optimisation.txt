@@ -1,0 +1,432 @@
+install.packages("dplyr")
+install.packages("e1071")
+install.packages("ggplot2")
+install.packages("igraph")
+library(dplyr)
+library(e1071)
+library(ggplot2)
+library(igraph)
+
+network = rbind(c(1,2,40), c(1,3,20), c(1,4,25), c(1,5,25),
+                c(2,3,10), c(2,6,30), c(2,7,25),
+                c(3,4,35), c(3,7,10), c(3,8,40), c(3,9,20),
+                c(4,5,10), c(4,9,40), c(4,10,40), c(4,11,30),
+                c(5,11,35),
+                c(6,7,10), c(6,12,30),
+                c(7,8,5), c(7,9,40), c(7,12,10), c(7,13,40),
+                c(8,9,15), c(8,12,20), c(8,13,10), c(8,14,35),
+                c(9,10,40), c(9,14,30), c(9,15,40),
+                c(10,11,15), c(10,15,10), c(10,16,5), c(10,19,30),
+                c(11,16,40),
+                c(12,13,10), c(12,17,40),
+                c(13,14,40), c(13,17,10), c(13,18,25),
+                c(14,15,40), c(14,18,20), c(14,20,15),
+                c(15,16,30), c(15,19,5), c(15,20,20),
+                c(16,19,10),
+                c(17,18,35),
+                c(18,20,40),
+                c(19,20,40))
+
+network = as.data.frame(network)
+names(network) = c("from", "to", "cost")
+network
+
+# Fitness function
+shortest.path.fitness.function <- function(x){
+  sNode <- 1
+  eNode <- 20
+  EndReach <- FALSE
+  chromSize <- length(x)
+  completeRoute <- data.frame(from= integer(), to= integer(), cost=integer())
+  i=1
+  while (EndReach == FALSE && i <= chromSize) {
+    
+    edges <- network %>% filter(from == sNode)
+    lengthofegdes <- length(edges)
+    gene = toInteger(x[i])
+    gene <- gene %% lengthofegdes
+    selectedEdge <- edges[gene+1,]
+    
+    completeRoute <- rbind(completeRoute, selectedEdge)
+    
+    
+    if(selectedEdge$to == eNode)
+    {
+      EndReach <- TRUE
+    }
+    
+  }
+  
+  print(completeRoute)
+  return(minCost(completeRoute))
+}
+
+# Cost calculation function
+minCost <- function(x){
+  totalCost <- sum(completeRoute$cost)
+  return(totalCost)
+}
+
+# Genetic Algorithm (GA)
+
+install.packages("GA")
+install.packages("igraph")
+library(GA)
+library(igraph)
+
+# network_matrix_GA <- as.matrix(network_matrix)
+# network_matrix_GA[is.na(network_matrix_GA)] <- 0 # Convert NA values to zero
+
+getData <- function(){
+  D <- network
+  return(D)
+}
+
+#This function is used by the GA to compute or report the statistics of your interest after every generation.
+#This function overrides the default functionality provided by gaMonitor().
+monitor <- function(obj){
+  # gaMonitor(obj)                      #call the default gaMonitor to print the usual messages during evolution
+  iter <- obj@iter                      #get the current iternation/generation number 
+  if (iter <= maxGenerations){          #some error checking
+    fitness <- obj@fitness              #get the array of all the fitness values in the present population
+    #<<- assigns a value to the global variable declared outside the scope of this function.    
+    thisRunResults[iter,1] <<- max(fitness)
+    thisRunResults[iter,2] <<- mean(fitness)    
+    thisRunResults[iter,3] <<- median(fitness)
+    cat(paste("\rGA | iter =", obj@iter, "Mean =", thisRunResults[iter,2], "| Best =", thisRunResults[iter,1], "\n"))
+    flush.console()
+  }  
+  else{                               #print error messages
+    cat("ERROR: iter = ", iter, "exceeds maxGenerations = ", maxGenerations, ".\n")
+    cat("Ensure maxGenerations == nrow(thisRunResults)")
+  }
+}
+
+runGA <- function(noRuns = 1, problem = "shortestPathRouting"){
+  library(GA)
+  #Specify GA parameter values; using the default values below. 
+  if (problem == "shortestPathRouting"){
+    maxGenerations <<- 3
+    popSize = 2
+    pcrossover = 0.8
+    pmutation = 0.2
+    type = "real-valued"
+    data = getData()
+    min = c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) #minimum is city indexed 1
+    max = c(20,20,20,20,20,20,20,20,20,20,20,20,20,20,20)               #maximum is the number of cities in the data set
+    fitness = shortest.path.fitness.function              #fitness function defined in
+  }else 
+  {
+    cat("invalid problem specified. Exiting ... \n")
+    return()
+  }
+  
+  #Set up what stats you wish to note.    
+  statnames = c("best", "mean", "median")
+  thisRunResults <<- matrix(nrow=maxGenerations, ncol = length(statnames)) #stats of a single run
+  resultsMatrix = matrix(1:maxGenerations, ncol = 1)  #stats of all the runs
+  
+  resultNames = character(length(statnames)*noRuns)
+  resultNames[1] = "Generation"
+  
+  bestFitness <<- -Inf
+  bestSolution <<- NULL
+  for (i in 1:noRuns){
+    cat(paste("Starting Run ", i, "\n"))
+    if (problem == "shortestPathRouting")
+      GA <- ga(type = type, fitness = fitness,  
+               min = min, max = max, popSize = popSize, maxiter = maxGenerations,
+               pcrossover=pcrossover, pmutation = pmutation, monitor= monitor, seed=i ) #seed=i added to ensure runs are independent
+    
+    resultsMatrix = cbind(resultsMatrix, thisRunResults)
+    
+    if (GA@fitnessValue > bestFitness){
+      bestFitness <<- GA@fitnessValue
+      bestSolution <<- GA@solution
+    }
+    #Create column names for the resultsMatrix
+    for (j in 1:length(statnames)) resultNames[1+(i-1)*length(statnames)+j] = paste(statnames[j],i)
+  }
+  colnames(resultsMatrix) = resultNames
+  return (resultsMatrix)
+}
+
+GA.fit <- runGA(noRuns = 1, problem = "shortestPathRouting")
+summary(GA.fit)
+print(GA.fit)
+
+parseData <- function(data, firstcolumn, noRuns){
+  col <- firstcolumn
+  allstats <- (ncol(data)-1)/noRuns   #how many stats were collected. Omit the first column (Generations)
+  cols <- seq(col,noRuns*allstats, by=allstats)
+  subdata <- data[,cols]
+  noGens <- nrow(data)
+  pdata <- matrix(nrow = noGens, ncol = 3)
+  for (i in 1:noGens){
+    pdata[i,1] = i
+    pdata[i,2] = mean(subdata[i,])
+    pdata[i,3] = 1.96*sd((subdata[i,]))/sqrt(noRuns)   #compute the length of error bar. 
+  }
+  return (pdata)
+}
+
+finalresults = parseData(data=GA.fit, firstcolumn=2, noRuns=30)
+
+shortest.path.routing.problem.result <- parseData(data=GA.fit, firstcolumn=2, noRuns=30)
+
+shortest.path.routing.problem.result
+
+plot(shortest.path.routing.problem.result)
+
+shortest.path.routing.problem.result <- data.frame(shortest.path.routing.problem.result)
+
+ggplot(shortest.path.routing.problem.result, aes(shortest.path.routing.problem.result$X1, shortest.path.routing.problem.result$X2)) + 
+  geom_errorbar(aes(ymin = shortest.path.routing.problem.result$X2 - shortest.path.routing.problem.result$X3, 
+                    ymax = shortest.path.routing.problem.result$X2 + 
+                      shortest.path.routing.problem.result$X3), 
+                width = 0.001,
+                color = 'grey') + 
+  geom_point(color = 'navy' ) + 
+  scale_x_continuous(limits = c(0,1250))
+
+library(dplyr)
+library(e1071)
+library(GA)
+library(ggplot2)
+library(igraph)
+###############################################################################################################################
+
+###############################################################################################################################
+# Lookup table
+shortest_path_lookup = rbind(c(4, 1, 2, 3, 4, 5, NA, NA, NA, NA, NA, NA),
+                             c(4, 2, 3, 6, 7, 1, NA, NA, NA, NA, NA, NA),
+                             c(6, 3, 4, 7, 8, 9, 2, 1, NA, NA, NA, NA),
+                             c(6, 4, 5, 9, 10, 11, 3, 1, NA, NA, NA, NA),
+                             c(3, 5, 11, 4, 1, NA, NA, NA, NA, NA, NA, NA),
+                             c(3, 6, 7, 12, 2, NA, NA, NA, NA, NA, NA, NA),
+                             c(7, 7, 8, 9, 12, 13, 6, 3, 2, NA, NA, NA),
+                             c(6, 8, 9, 12, 13, 14, 7, 3, NA, NA, NA, NA),
+                             c(7, 9, 10, 14, 15, 8, 7, 4, 3, NA, NA, NA),
+                             c(6, 10, 11, 15, 16, 19, 9, 4, NA, NA, NA, NA),
+                             c(4, 11, 16, 10, 5, 4, NA, NA, NA, NA, NA, NA),
+                             c(5, 12, 13, 17, 8, 7, 6, NA, NA, NA, NA, NA),
+                             c(6, 13, 14, 17, 18, 12, 8, 7, NA, NA, NA, NA),
+                             c(6, 14, 15, 18, 20, 13, 9, 8, NA, NA, NA, NA),
+                             c(6, 15, 16, 19, 20, 14, 10, 9, NA, NA, NA, NA),
+                             c(4, 16, 19, 15, 11, 10, NA, NA, NA, NA, NA, NA),
+                             c(3, 17, 18, 13, 12, NA, NA, NA, NA, NA, NA, NA),
+                             c(4, 18, 20, 17, 14, 13, NA, NA, NA, NA, NA, NA),
+                             c(4, 19, 20, 16, 15, 10, NA, NA, NA, NA, NA, NA),
+                             c(4, 20, 19, 18, 15, 14, NA, NA, NA, NA, NA, NA))
+
+#calculate_cost <- tmp3[1, which(V(network.graph)$name == '20')]
+#shortest.path.fitness.function <- function(c)
+#{
+# cat("chromosome: ",c, "\n")
+#  node=1
+#  i=1
+#  route <- embed(c,2)[,1:20] 
+#  while(i <= length(c) && node != 20)
+#  {
+#    choice = c[i]%%shortest_path_lookup$no.of.options[node,1]  +3 
+#    node=shortest_path_lookup[node,choice]
+#    rbind(c(2, 3, ..., 20))
+#  }
+#  score = calculate_cost(route)
+#  return (score)
+#}
+
+network = rbind(c(1,2,40), c(1,3,20), c(1,4,25), c(1,5,25),
+                c(2,3,10), c(2,6,30), c(2,7,25),
+                c(3,4,35), c(3,7,10), c(3,8,40), c(3,9,20),
+                c(4,5,10), c(4,9,40), c(4,10,40), c(4,11,30),
+                c(5,11,35),
+                c(6,7,10), c(6,12,30),
+                c(7,8,5), c(7,9,40), c(7,12,10), c(7,13,40),
+                c(8,9,15), c(8,12,20), c(8,13,10), c(8,14,35),
+                c(9,10,40), c(9,14,30), c(9,15,40),
+                c(10,11,15), c(10,15,10), c(10,16,5), c(10,19,30),
+                c(11,16,40),
+                c(12,13,10), c(12,17,40),
+                c(13,14,40), c(13,17,10), c(13,18,25),
+                c(14,15,40), c(14,18,20), c(14,20,15),
+                c(15,16,30), c(15,19,5), c(15,20,20),
+                c(16,19,10),
+                c(17,18,35),
+                c(18,20,40),
+                c(19,20,40))
+
+network = as.data.frame(network)
+names(network) = c("from", "to", "cost")
+network
+###############################################################################################################################
+
+###############################################################################################################################
+# Fitness function
+shortest.path.fitness.function <- function(x){
+  sNode <- 1
+  eNode <- 20
+  EndReach <- FALSE
+  chromSize <- length(x)
+  completeRoute <- data.frame(from= integer(), to= integer(), cost=integer())
+  i=1
+  while (EndReach == FALSE && i <= chromSize) {
+   ## cat("sNode = ", sNode, "\n")
+    edges <- network %>% filter(from == sNode)
+   ## print(edges)
+    lengthofegdes <- nrow(edges)
+    gene = as.integer(x[i])
+    gene <- gene %% lengthofegdes
+  ##  cat("lengthofedges=",lengthofegdes, "x[i] = ", as.integer(x[i]), "gene = ", gene, "\n")
+    selectedEdge <- edges[gene+1,]
+    
+    completeRoute <- rbind(completeRoute, selectedEdge)
+    
+  ##  print(selectedEdge)
+    
+    if(selectedEdge$to == eNode)
+    {
+      EndReach <- TRUE
+    }
+    
+    sNode = selectedEdge$to
+    i=i+1
+  }
+  
+  ##print(completeRoute)
+  return(minCost(completeRoute))
+}
+###############################################################################################################################
+
+###############################################################################################################################
+# Cost calculation function
+minCost <- function(Route){
+  ##print(Route$cost)
+  totalCost <- sum(Route$cost)
+  return(1/(1+totalCost))
+}
+###############################################################################################################################
+
+###############################################################################################################################
+# Genetic Algorithm (GA)
+getData <- function(){
+  D <- network
+  return(D)
+}
+
+#This function is used by the GA to compute or report the statistics of your interest after every generation.
+#This function overrides the default functionality provided by gaMonitor().
+monitor <- function(obj){
+  # gaMonitor(obj)                      #call the default gaMonitor to print the usual messages during evolution
+  iter <- obj@iter                      #get the current iternation/generation number 
+  if (iter <= maxGenerations){          #some error checking
+    fitness <- obj@fitness              #get the array of all the fitness values in the present population
+    #<<- assigns a value to the global variable declared outside the scope of this function.    
+    thisRunResults[iter,1] <<- max(fitness)
+    thisRunResults[iter,2] <<- mean(fitness)    
+    thisRunResults[iter,3] <<- median(fitness)
+    cat(paste("\rGA | iter =", obj@iter, "Mean =", thisRunResults[iter,2], "| Best =", thisRunResults[iter,1], "\n"))
+    flush.console()
+  }  
+  else{                               #print error messages
+    cat("ERROR: iter = ", iter, "exceeds maxGenerations = ", maxGenerations, ".\n")
+    cat("Ensure maxGenerations == nrow(thisRunResults)")
+  }
+}
+
+runGA <- function(noRuns = 30, problem = "shortestPathRouting"){
+  library(GA)
+  if (problem == "shortestPathRouting"){
+    maxGenerations <<- 200
+    popSize = 40
+    pcrossover = 1.0
+    pmutation = 0.3
+    type = "real-valued"
+    data = getData()
+    min = c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+    max = c(20,20,20,20,20,20,20,20,20,20,20,20,20,20,20)               
+    fitness = shortest.path.fitness.function
+  }else 
+  {
+    cat("invalid problem specified. Exiting ... \n")
+    return()
+  }
+  
+  #Set up what stats you wish to note.    
+  statnames = c("best", "mean", "median")
+  thisRunResults <<- matrix(nrow=maxGenerations, ncol = length(statnames)) #stats of a single run
+  resultsMatrix = matrix(1:maxGenerations, ncol = 1)  #stats of all the runs
+  
+  resultNames = character(length(statnames)*noRuns)
+  resultNames[1] = "Generation"
+  
+  bestFitness <<- -Inf
+  bestSolution <<- NULL
+  for (i in 1:noRuns){
+    cat(paste("Starting Run ", i, "\n"))
+    if (problem == "shortestPathRouting")
+      GA <- ga(type = type, fitness = fitness,  
+               lower = min, upper = max, popSize = popSize, maxiter = maxGenerations,
+               pcrossover=pcrossover, pmutation = pmutation, monitor= monitor, seed=i) #seed=i ensure runs are independent
+    
+    resultsMatrix = cbind(resultsMatrix, thisRunResults)
+    
+    if (GA@fitnessValue > bestFitness){
+      bestFitness <<- GA@fitnessValue
+      bestSolution <<- GA@solution
+    }
+    #Create column names for the resultsMatrix
+    for (j in 1:length(statnames)) resultNames[1+(i-1)*length(statnames)+j] = paste(statnames[j],i)
+  }
+  colnames(resultsMatrix) = resultNames
+  return (resultsMatrix)
+}
+
+GA.fit <- runGA(noRuns = 30, problem = "shortestPathRouting")
+GA.fit2 <- runGA(noRuns = 30, problem = "shortestPathRouting")
+GA.fit3 <- runGA(noRuns = 30, problem = "shortestPathRouting")
+summary(GA.fit)
+print(GA.fit3)
+###############################################################################################################################
+
+###############################################################################################################################
+# Visualise and plot
+
+parseData <- function(data, firstcolumn, noRuns){
+  col <- firstcolumn
+  allstats <- (ncol(data)-1)/noRuns   #how many stats were collected. Omit the first column (Generations)
+  cols <- seq(col,noRuns*allstats, by=allstats)
+  subdata <- data[,cols]
+  noGens <- nrow(data)
+  pdata <- matrix(nrow = noGens, ncol = 3)
+  for (i in 1:noGens){
+    pdata[i,1] = i
+    pdata[i,2] = mean(subdata[i,])
+    pdata[i,3] = 1.96*sd((subdata[i,]))/sqrt(noRuns)   #compute the length of error bar. 
+  }
+  return (pdata)
+}
+
+finalresults = parseData(data=GA.fit, firstcolumn=2, noRuns=30)
+
+shortest.path.routing.problem.result <- parseData(data=GA.fit, firstcolumn=2, noRuns=30)
+
+shortest.path.routing.problem.result
+
+plot(shortest.path.routing.problem.result)
+
+shortest.path.routing.problem.result <- data.frame(shortest.path.routing.problem.result)
+
+ggplot(shortest.path.routing.problem.result, aes(shortest.path.routing.problem.result$X1, shortest.path.routing.problem.result$X2)) + 
+  geom_errorbar(aes(ymin = shortest.path.routing.problem.result$X2 - shortest.path.routing.problem.result$X3, 
+                    ymax = shortest.path.routing.problem.result$X2 + 
+                      shortest.path.routing.problem.result$X3), 
+                width = 0.001,
+                color = 'grey') + 
+  geom_point(color = 'navy' ) + 
+  scale_x_continuous(limits = c(0,100))
+###############################################################################################################################
+
+
+
+

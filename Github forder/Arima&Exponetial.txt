@@ -1,0 +1,131 @@
+library(forecast)
+library(fpp2)
+library(tseries)
+library(forecast)
+library(fpp)
+library(fpp2)
+library(ggplot2)
+library(summarytools)
+myts <- ts(data27$Lifetouch.Heart.Rate,)
+class(myts)
+start(myts)
+end(myts)
+frequency(myts)
+
+str(myts)
+Pacf(myts)
+acf(myts)
+ #Manual Arima  models
+D<-diff(myts, differences=1)
+Acf(D)
+Pacf(D)
+library(MASS)
+E_stm<- arima(myts,order = c(1,0,0)) 
+summary(E_stm)
+E_stm
+
+# forecasting 
+Arima101<-  arima(myts,order = c(1,0,1))
+summary(Arima101)
+scheckresiduals(Arima101)
+ArimaPred_101<-predict(Arima101,n.ahead = 24*60/10)
+ArimaPred_101
+autoplot(myts)
+plot(myts,xlim=c(0,200))
+lines(ArimaPred_101$pred,col=" Blue")
+lines(ArimaPred_101$pred+ArimaPred_101$se, lty =2,col="red")
+lines(ArimaPred_101$pred-ArimaPred_101$se,lty=2,col="red")
+D<-diff(myts, differences=1)
+Arima102<- arima(D,order = c(1,0,1))
+summary(Arima102)
+checkresiduals(Arima102)
+sAcf(D)
+Pacf(D)
+#Prediction for  10 min
+plot(D,xlim=c(0,200))
+lines(ArimaPred_101$pred,col=" Blue")
+lines(ArimaPred_101$pred+ArimaPred_101$se, lty =2,col="red")
+lines(ArimaPred_101$pred-ArimaPred_101$se,lty=2,col="red")
+myts1 <- ts(data3$Lifetouch.Heart.Rate,frequency =24*60/10,start =c(2016,1))  
+
+class(myts)
+str(myts)
+head(myts)
+autoplot(myts,xlab = "time(hrs)",ylab = "observation")
+Heartbeat<-diff(myts, differences=1)
+head(myts)
+library(forecast)
+library(fpp2)
+fit_etss <- ets(myts)
+summary(fit_etss)
+checkresiduals(fit_etss)
+fitt<- forecast(fit_etss,h=24*60/10)#forecasting 10 min ahead
+autoplot(fitt)
+
+lines(fitt$mean,col="red")
+
+ArimaPred_10s<-predict(fit_etss,n.ahead = 24*60/10)
+ArimaPred_10s
+autoplot(fitt)
+
+
+plot(fitt,xlim=c(0,400))
+
+plot(fiiit$x,xlim=c(0,400))
+lll<-forecast(fiiit$fitted,col="red")
+lines(ArimaPred_10s,col="blue")
+
+lines(ArimaPred_10s$pred,col=" blue")
+lines(ArimaPred_10s$pred,lty =2,col="blue")
+lines(ArimaPred_10s$pred,lty=2,col="blue")
+
+fit_decompose <- decompose(myts)# , type = "additive")
+se_model<- ses(myts,level = c(95), h = 24*60/10)
+summary(se_model)
+autoplot(se_model,xlab = "time(hrs)",ylab = "observation")
+checkresiduals(se_model)
+plot(forecast(se_model,h=24*60/10))
+summary(se_model)
+
+Hot_model<-holt(myts,h=24*60/10)
+
+summary(Hot_model)
+autoplot(Hot_model,xlab = "time(hrs)",ylab = "observation")
+checkresiduals(Hot_model)
+plot(forecast(Hot_model,h=24*60/10))
+summary(Hot_model)
+Heartbeat<-diff(myts, differences=1)
+autoplot(Heartbeat)
+D_dif<- arima(Heartbeat,order = c(1,0,1)) 
+summary(D_dif) 
+
+tt2<-auto.arima(Heartbeat,trace=TRUE)
+summary(tt2)
+Acf(Heartbeat)
+Pacf(Heartbeat)
+checkresiduals(tt2)
+# forecasting 
+fcast<-forecast(tt2)#1440 ENTTRY
+autoplot(fcast)
+fcast
+ArimaPred_10p<-predict(tt2,n.ahead = 24*60/10)
+ArimaPred_10p
+autoplot(fcast)
+plot(fcast,xlim=c(0,200))
+lines(ArimaPred_10p$pred,col=" Blue")
+lines(ArimaPred_10p$pred+ArimaPred_10p$se, lty =2,col="red")
+lines(ArimaPred_10p$pred-ArimaPred_10p$se,lty=2,col="red")
+summary(fcast)s
+fcast<-forecast(tt2,h=24*60/10)#1440 ENTTRY
+autoplot(fcast)
+print(summary(fcast))
+accuracy(fcast, d=1, D=0,)
+fit.arima<- auto.arima(myts,d=1,D=1,stepwise = FALSE, approximation=FALSE,trace = TRUE)
+summary(fit.arima)
+print(summary(fit.arima))
+checkresiduals(fit.arima)
+library(fpp2)
+Fcast <- forecast(fit.arima,h=24)
+autoplot(Fcast)
+autoplot(Fcast,include = 30)
+print(summary(Fcast)

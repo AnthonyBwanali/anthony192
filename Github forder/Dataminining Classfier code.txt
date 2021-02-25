@@ -1,0 +1,197 @@
+#Classfier method using  arlogarithms using  Random forest,Svm and 
+#Random Forest
+
+clearing observation results
+rm(list=ls())
+# inserting data to rstudio
+Predict.dt <- read.csv(file.choose(), header = TRUE)
+#observing dataset
+head(Predict.dt)
+str(Predict.dt)
+summary(Predict.dt)
+#removing id column
+Predict.dt<-Predict.dt[-1]
+head(Predict.dt)
+Predict.dt$stroke <- factor(Predict.dt$stroke)
+str(Predict.dt)
+install.packages("randomForest")
+
+library(randomForest)
+# Split into Train and Validation sets
+# Training Set : Validation Set = 70 : 30 (random)
+set.seed(1234)
+train <- sample(nrow(Predict.dt), 0.7*nrow(Predict.dt), replace = FALSE)
+TrainSet <- Predict.dt[train,]
+ValidSet <- Predict.dt[-train,]
+summary(TrainSet)
+summary(ValidSet)
+# Creating a Random Forest model with default parameters
+strokedata1 <- randomForest(stroke ~ ., data = TrainSet, importance = TRUE)
+strokedata1
+
+# Fine tuning parameters of Random Forest model
+stroke.data2 <- randomForest(stroke ~ ., data = TrainSet, ntree = 500, mtry = 6, importance = TRUE)
+stroke.data2
+
+# Predicting on train set
+predTrain <- predict(stroke.data2, TrainSet, type = "class")
+# Checking classification accuracy
+table(predTrain, TrainSet$stroke)  
+
+# Predicting on Validation set
+predValid <- predict(stroke.data2, ValidSet, type = "class")
+# Checking classification accuracy
+mean(predValid == ValidSet$stroke)                    
+table(predValid,ValidSet$stroke)
+
+# To check important variables
+importance(stroke.data2)        
+varImpPlot(stroke.data2) 
+
+#DeciscionTree
+
+#crearing the  obsrvation
+rm(list=ls())
+# Insertin  csv file into Rstudio
+Stroke.df <- read.csv(file.choose(), header = TRUE)
+#Observing the data structure
+str(Stroke.df)
+ head(Stroke.df)
+ #removing id column
+Stroke.dt <- Stroke.df[-1]
+head(Stroke.dt) 
+Stroke.dt$stroke <- factor(Stroke.dt$stroke)
+
+str(Stroke.dt)
+#installing the library
+library(caret)
+library(e1071)
+#setting the tunning parameters
+set.seed(1234)
+intrain <- createDataPartition(y = Stroke.dt$stroke, p= 0.7, list = FALSE)
+  #splitting the data for traing and testing 70% for traing30% for testing                             
+training <- Stroke.dt[intrain,]
+testing <-Stroke.dt[-intrain,]
+dim(training);dim(testing);
+#checking data missing value
+anyNA(Stroke.dt)
+summary(Stroke.dt)
+#changind the data 1& 0
+
+training[["stroke"]] = factor(training[["stroke"]])
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+set.seed(1234)
+library(kernlab)
+#Training the SVM model
+svm_Linear <- train(stroke ~., data = training, method = "svmLinear",
+                    trControl=trctrl,
+                    preProcess = c("center", "scale"),
+                    tuneLength = 10)
+#svm_Linear
+#Test Set Prediction
+test_pred <- predict(svm_Linear, newdata = testing)
+test_pred
+#How Accurately our model is working?
+confusionMatrix(test_pred, testing$stroke)
+str(Stroke.df)
+
+
+#Supporing Vector
+
+#crearing the  observation
+rm(list=ls())
+# Insertin  csv file into Rstudio
+Stroke.df <- read.csv(file.choose(), header = TRUE)
+#Observing the data structure
+str(Stroke.df)
+ head(Stroke.df)
+ #removing id column
+Stroke.dt <- Stroke.df[-1]
+head(Stroke.dt) 
+Stroke.dt$stroke <- factor(Stroke.dt$stroke)
+
+str(Stroke.dt)
+#installing the library
+library(caret)
+library(e1071)
+#setting the tunning parameters
+set.seed(1234)
+intrain <- createDataPartition(y = Stroke.dt$stroke, p= 0.7, list = FALSE)
+  #splitting the data for traing and testing 70% for traing30% for testing                             
+training <- Stroke.dt[intrain,]
+testing <-Stroke.dt[-intrain,]
+dim(training);dim(testing);
+#checking data missing value
+anyNA(Stroke.dt)
+summary(Stroke.dt)
+#changind the data 1& 0
+training[["stroke"]] = factor(training[["stroke"]])
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+set.seed(1234)
+library(kernlab)
+#Training the SVM model
+svm_Linear <- train(stroke ~., data = training, method = "svmLinear",
+                    trControl=trctrl,
+                    preProcess = c("center", "scale"),
+                    tuneLength = 10)
+svm_Linear
+#Test Set Prediction
+test_pred <- predict(svm_Linear, newdata = testing)
+test_pred
+#How Accurately our model is working?
+confusionMatrix(test_pred, testing$stroke)
+str(Stroke.df)
+
+
+Decision Tree
+#clearing the obervation
+rm(list=ls())
+
+# Load the dataset and explore
+Strokedata <- read.csv(file.choose(), header = TRUE)
+#observing data catagolies
+str(Strokedata)
+Stroke.predict<- (Strokedata)
+#removing column not important for Analysis
+Stroke.predict<-Stroke.predict[-1]
+str(Stroke.predict)
+head(Stroke.predict)
+Stroke.predict$stroke <- factor(Stroke.predict$stroke)
+str(Stroke.predict)
+#insatalling required libraryfor Anaysis
+library(caret)
+library(rpart.plot)
+
+#Data slicing  70% and30%
+set.seed(100)
+intrain <- createDataPartition(y = Stroke.predict$stroke , p= 0.7, list = FALSE)
+training <-Stroke.predict [intrain,]
+testing <-Stroke.predict [-intrain,]
+#checking dimension of Traing and test
+dim(training); dim(testing);
+#checkimg missing value
+anyNA(Stroke.predict)
+
+ summary(Stroke.predict)
+ #library for model
+ library(e1071)
+ 
+ #Training the Decision Tree classifier with criterion as information gain
+ trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+ set.seed(1234)
+ dtree_fit <- train(stroke~., data = training, method = "rpart",
+                    parms = list(split = "information"),
+                    trControl=trctrl,
+                    tuneLength = 10)
+
+ dtree_fit
+ 
+ prp(dtree_fit$finalModel, box.palette = "Reds", tweak = 1.2)
+ testing[1,]
+ 
+ predict(dtree_fit, newdata = testing[1,])
+ test_pred <- predict(dtree_fit, newdata = testing)
+ #Trained Decision Tree classifier results
+confusionMatrix(test_pred, testing$stroke)  #check accuracy
+
+  
